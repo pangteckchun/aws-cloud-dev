@@ -15,8 +15,9 @@ Lab 2 to 6 are important exercises to pass the capstone project (lab 7)
 - `AWS Local Zones`: available in Bangkok and Manila only | a separate mini DC outside of the AZs in that region in a busy area, e.g. in a CBD | for dedicated and super low latency requirements (real time gaming, live video streaming, AR/VR) | AWS infra at the edge with small number of services.
 - `Edge locations`: combo of CDNs (AWS Cloudfront) and routing (Route 53) | storage and cache services for near-shore data access only without processing services | only for hot data state and not all data are fetched and cached | still need to fetch from source to edge location for the first user.
 - `AWS Well Architected Framework` 6 pillars: Security, Performance efficiency, Cost optimization, Operational excellence, Reliability, Sustainability.
+---
 
-### Lab #1 - Using AWS CLI for s3 ###
+## `Lab #1 - Using AWS CLI for s3` ##
 - Listing all buckets in s3 - `aws s3 ls`
 - Creating a new bucket - `aws s3 mb s3://labclibucket-NUMBER`
 - Copying a local file to s3 - `aws s3 cp /home/ssm-user/HappyFace.jpg s3://labclibucket-NUMBER`
@@ -113,7 +114,7 @@ All about EC2, instance storage, pricing, Lambda.
 - Lambda: runs up to 15mins only | supports up to only 10GB of memory. 
 - Very useful for IT automation.
 
-### Lab #2 - VPCs, subnets, EC2s ###
+## `Lab #2 - VPCs, subnets, EC2s` ##
 - One VPC in a single region in one single AZ - 2 subnets [public and private] in the VPC.
 - Public subnet - attach Internet Gateway and route table (making it publicly available) | Internet Gateway allowing internet traffic as default setting | attach NAT gateway, connect NAT Gateway to Internet Gateway in route table.
 - Private subnet - attach route table, connect to NAT gateway in route table.
@@ -238,7 +239,7 @@ Server, Amazon Redshift, Aurora, MariaDB, and MySQL.
 - Use `AWS Schema Conversion Tool` (`AWS SCT`) to convert schema between heterogeneous DBs migration; The conversion includes views, stored procedures, and functions; it converts legacy Oracle and SQL Server functions to their equivalent AWS service, thus modernizing the applications at the same time of database migration.
 - AWS SCT can also help migrate data from various data warehouses to Amazon Redshift by using built-in data migration agents.
 
-### Lab #3 - ALB & Aurora DB ###
+## `Lab #3 - ALB & Aurora DB` ##
 - ALB in public subnet --> target group (with rule) --> EC2s @ 2 AZs --> DB-security-group --> Aurora DB instance
 - Access custom web app (on EC2s) using ALB public DNS name, put in DB credentials via settings and you can interact with the DB via the custom web app page.
 ---
@@ -287,9 +288,13 @@ Alarm states include "OK", "ALARM", "INSUFFICIENT_DATA".
 - Specify min and max resources in the auto scaling group.
 - Specify scaling based on: health status, cloudwatch alarms, schedules (date/time), manually (you specify capacity on your scaling group yourself).
 
-### Lab 4 - Auto-scaling groups ###
-- Http (80) --> **ALB** --> sg-ALB -- allowed by --> sg-EC2s inbound --> **EC2s** --> sg-EC2s outbound --> sg-DB inbound --> **DB**.
-- Create launch template (OS image, instance type etc) --> create auto-scaling group and attach launch template --> associate with ALB & its target group
+## `Lab 4 - Auto-scaling groups` ##
+- [Security] Http (80) --> **ALB** --> secGrp-ALB -- allowed by --> secGrp-EC2s inbound --> **EC2s** --> secGrp-EC2s outbound --> secGrp-DB inbound --> **DB**.
+- [Flow] **ALB** target-grp --> attach ALB to scaling-grp of EC2s by selecting the ALB's target-grp:  
+-- target-grp specifies the EC2 instances as targets;  
+-- combining with scaling-grp will allow auto-scaling to launch more EC2 instances when more traffic is experienced by ALB.  
+- Create launch template (OS image, instance type etc) --> create auto-scaling group and attach launch template --> associate with ALB & its target group:  
+-- Launch templates specify the EC2 details (OS, instance types etc) which will be launched wh  en scaling up more instances.
 - Observed lost of web app functionality when one app instance is terminated; not seamless HA.
 - Manually add reader to DB primary instance but need to manually note to use different AZ from primary instance.
 - Manually failover by going to `databases`, select cluster and go a failover.
@@ -348,6 +353,202 @@ All about microservices, containers and container services.
 All about VPC endpoints, peering, hybrid networking, AWS Transit Gateway.
 
 ### VPC Endpoints ###
-- ???
+- Without VPC endpoints, a VPC requires an internet gateway and a NAT gateway, or a public IP address, to access serverless services outside the VPC.
+- You **do not need an internet gateway, a NAT device, a VPN connection, or an AWS Direct Connect connection**. Instances in your VPC do not require public IP addresses to communicate with resources in the service; uses private IP only.
+- Still protects private resources from internet traffic.
+- EC2 @ private subnet --> `VPC endpoint` --> AWS services.
+- 2 types: gateway and interface VPC endpoints.  
+-- Interface VPC endpoint uses ENI (elastic network interface - virtual network card) to connect different services. Only need one Interface VPC endpoint "instance" to connect different internal services. No need to configure any new entry in route table. Need to specify which subnet the Interface VPC endpoint will reside and it will take on the IP subnet mask.  
+-- Gateway endpoint only talks to S3 and DynamoDB. No charges for gateway endpoint for charges apply for data transfer and resource usage. Needs to configure routing table for the subnet to talk to each gateway endpoint. Each S3 or DynamoDB service needs a separate Gateway VPC endpoint. Gateway VPC endpoint is at VPC level and not tied to any subnet.  
 
-### Containers ###
+### VPC Peering ###
+- To allow VPCs to private route traffic.
+- The maximum transmission unit (MTU) across a VPC peering connection is 1,500 bytes.
+- 1-to-1 relationship between 2 VPCs.
+- Need to configure VPC routing table on both VPCs to peer.
+- IP spaces (CIDR ranges) between the 2 VPCs cannot ovelap; need unique IP address across the 2 VPCs for each resource.
+- Free to use.
+- VPC peering relationship is NOT transitive.
+- Allows peering across regions too.
+- Can become very messy if you need VPCs to communicate amongst each other and you have many VPCs to manage.
+
+### AWS Site-to-Site VPN ###
+- Connects on-premise to AWS cloud in encrypted comms, over public internet.
+- Hardware config @ on-premise installation to speak to virtual private gateway (VPC endpoint type) @ AWS.
+- No charges for data going into AWS; outgoing yes.
+- No charges for inactive connections.
+
+### AWS Direct Connect ###
+- Fiber connection from your own DC to AWS DC, via a 3rd telco party.
+- Not encrypted in transit by default but it is a private dedicated connection.
+- A physical hub (direct connect location) owned by AWS is connected by the Telco from your DC; avoids disclosing the DC locations of AWS.
+- Very high bandwidth but an expensive option.
+- Need to pay local telco (bandwidth usage) and AWS (for port hours usage).
+- You still pay for port hours even if there is no active connections / usage.
+
+### AWS Transit Gateway ###
+- A solution to reduce routing table maintenance.
+- Acts like a hub-and-spoke and can connect up to 5,000 VPCs and on-premise environments, per gateway. Allows VPCs to comms with each other via the gateway.
+- Routing through a transit gateway operates at Layer 3, where the packets are sent to a specific next-hop attachment based on their destination IP addresses; it scales elastically, based on traffic.
+- Inter-region connections too but you will need other region to also use transit gateway and do peering. Transit Gateway has its own internal routing table to facilitate peering.
+- Supports external site-to-site VPNs and Direct Connect into your network via the transit gateway.
+- Allows you to control who can talk to who via the transit gateway. Can even deny inter-VPCs comms through config.
+---
+
+## Module #11 - Serverless ##
+All about API gateway, SQS, SNS, Kinesis, Step Functions.
+
+### Amazon API Gateway ###
+- API Gateway handles all of the tasks involved in accepting and processing up to hundreds of thousands of concurrent API calls.
+- These tasks include traffic management, authorization and access control, 
+monitoring, and API version management.
+- Built-in DDoS protection & allows you to do API throttling.
+- Host and use multiple versions and stages of your APIs.
+- Create and distribute API keys to developers.
+- Use Signature Version 4 (SigV4) to authorize access to APIs.
+- Use RESTful or WebSocket APIs.
+- API Gateway also sends logs to Amazon CloudWatch. API Gateway can send logs to CloudWatch for each stage in your API or for each method. You can set the verbosity of the logging (Error or Info), and whether full request and response data should be logged.
+- Metrics collected by API Gateway:  
+-- Number of API calls  
+-- Latency  
+-- Integration latency  
+-- HTTP 400 and 500 errors  
+
+### Amazon Simple Queue Service (SQS) ###
+- Amazon SQS is a fully managed service that requires no administrative overhead and little configuration.
+- Charged by the num of times you poll SQS.
+- Operates within a single, highly available AWS Region with multiple redundant Availability Zones.
+-  Streaming Single Instruction Multiple Data (SIMD) Extensions (SSE) protects the contents of messages in SQS queues using keys managed in AWS KMS. SIMD Extensions encrypts messages as soon as Amazon SQS receives them. The messages are stored in encrypted form, and Amazon SQS decrypts messages only when they are sent to an authorized consumer.
+- Once the maximum number of retries is reached, SQS can redirect the message to an Amazon SQS dead-letter queue where you can reprocess or debug it later.
+- 2 types of SQS queue types:  
+-- Standard queues support at-least-once message delivery and provide best-effort ordering. Messages are generally delivered in the same order in which they are sent. But distributed processing can mean they can be out of order. 
+-- FIFO queues are designed to enhance messaging between applications when the order of operations and events is critical or where duplicates can't be tolerated. FIFO queues also provide exactly-once processing, but have a limited number of API calls per second.
+- Dead-letter queues are supported out-of-the-box for failed messages; configurable (disabled / enabled).
+- The consumer of a message from SQS needs to delete the message once it completes processing the message. If the consumer fails to delete the message before the visibility timeout expires, it becomes visible to other consumers and can be processed again.
+- Configurable short polling & long polling; SQS does not notify consumers like Kafka. Consumers need to poll SQS. Short polling can mean message may not have arrive when polled. Long polling - SQS will not return a response to consumer until at least 1 message has arrived.
+- SQS only supports one consumer per queue. SQS is like the old Queue type in JMS.
+
+### Amazon Simple Notification Service (SNS) ###
+- Amazon SNS is a web service that helps you to set up, operate, and send notifications from the cloud.
+- You create a topic and control access to it by defining policies that determine which publishers and subscribers can communicate with the topic.
+- Publisher-Subcriber model, i.e. 1-to-many.
+- Use cases: CloudWatch alarms, email and SMS messages push, mobile app push notifications.
+- Also supports standard and FIFO queue types.
+- Typically used in conjunction with SQS to perform a fan-out architecture:  
+-- SNS --to many--> SQS queues --to one--> consumer (1 SQS per consumer).  
+- SNS is like the old Topic type in JMS but it does not have message persistency. Push mechanism as compared to SQS.
+
+### Amazon Kinesis ###
+- Streaming data processing: real-time data analytics by separate consumers, data firehose for mini-batch processing (near real-time) and store into backend, 
+- Also supports Apache Flink and video stream processing.
+
+### Amazon Step Functions ###
+- Serverless orchestration tool.
+- Step Functions use a JSON-based Amazon States Language, which contains a structure made of various states, tasks, choices, error handling, and more.
+- Coordinates microservices using visual workflows.
+- Provides simple error catching and logging if a step fails.
+- Automatically initiates and tracks each step.
+- Permits you to step through the functions of your application.
+- 2 types of functions:  
+-- Standard workflow type for long-running, durable, and auditable workflows.  
+-- Express workflow type for high-volume, event-processing workloads such as IoT data ingestion, streaming data processing and transformation, and mobile application backends.  
+
+## `Lab #5 - Serverless Build` ##
+- `s3` --create events notification to SNS in S3--> `sns` (configure access policy to allow `s3` to trigger).
+- `sns` configure subscriptions to separate `sqs` queues.
+- `lambda` add trigger to each `sqs` queue and configure code that will run for each lambda trigger. One lambda config to each sqs queue.
+- CloudWatch automatically monitors lambdas; view from **Monitor** tab within Lambda.
+---
+
+## Module #12 - Edge Services ##
+All about Route 53, CloudFront, DDoS Protection, AWS Outposts.
+
+### Edge Fundamentals ###
+- Internet --> `Route 53` --> `AWS WAF` --> `Amazon CloudFront` (CDN) <--> [On-premise] `AWS Outposts`
+- <-------- [Within AWS] protected by `AWS Shield` (DDoS protection)------>
+
+### Route 53 ###
+- Route 53 provides a DNS, domain name registration, and health checks.
+- Resolves domain names to IP addresses.
+- Registers or transfers a domain name.
+- Routes requests based on latency, health checks and other criteria.
+- Public DNS: route to internet-facing resources, resolve from the internet, use global routing policies.
+- Private DNS: route to VPC resources, resolve from inside VPC.
+- Different routing policies to work with: https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html
+- It is not a substitute for a load balancer, even though Route 53 can do health checks (failover routing, multivalue answer routing).
+
+### Amazon CloudFront (global CDN service) ###
+- Regional edge caches when you have content that is not accessed frequently enough to remain in an edge location.
+- CloudFront supports real-time, bidirectional communication over the WebSocket protocol.
+- Built-in CloudFront integrations with AWS Shield and AWS WAF.
+- CloudFront speeds up the distribution of your content by routing each user request through the **AWS backbone network** to the edge location that can best serve your content.
+- By requesting content from the Distribution domain value for the CloudFront configuration, you are verifying that the existing cache is working.
+
+### AWS Shield ###
+- DDoS is most common at the Network (Layer 3), Transport (Layer 4), Presentation (Layer 6), and Application (Layer 7) layers.
+- Shield Standard (Layer 3 and 4) is out of the box once you have public address or when you use CloudFront, at no additional charge. Shield Advanced needs additional purchases (Layer 6 & 7).
+- Best practices for DDoS resiliency: https://docs.aws.amazon.com/whitepapers/latest/aws-best-practices-ddos-resiliency/welcome.html.
+
+### AWS WAF ###
+- AWS WAF is a web application firewall that helps protect your web applications or APIs against common web exploits and bots.
+- AWS WAF gives you control over how traffic reaches your applications. Create security rules that control bot traffic and block common attack patterns, such as SQL injection (SQLi) or cross-site scripting (XSS).
+- You can also monitor HTTP(S) requests that are forwarded to your compatible AWS services.
+- Logs are collected via CloudWatch Logs and metrics are collected via CloudWatch.
+
+### AWS Firewall Manager ###
+- AWS Firewall Manager simplifies the administration and maintenance tasks of your AWS WAF and Amazon VPC security groups.
+- Set up your AWS WAF firewall rules, Shield protections, and Amazon VPC security groups once.
+- There are three prerequisites for using it: activate AWS Organizations with full features, use AWS Config, and have an assigned user as the Firewall Manager administrator.
+
+### AWS Outposts ###
+- Extend the AWS Cloud to an on-premises data center.
+- Outposts rack - from AWS in full hardware suite. Roll out by AWS.
+- Outposts server - less space constraints; server delivered by AWS but installed on your own or vendor. Once connected to your network, AWS will remotely provision compute and storage resources.
+- A virtual private cloud (VPC) spans all Availability Zones in its AWS Region. You can extend any VPC in the Region to your Outpost by adding an Outpost subnet.
+- Outposts support multiple subnets.
+- Each Outpost can support multiple VPCs that can have one or more Outpost subnets.
+
+## `Lab #6 - CloudFront CDN Distribution` ##
+- `CloudFront` --> [OAC config] --> `s3`
+- Access `CloudFront` via its distributed domain name (from General config tab) in a browser and a simple web page is loaded displaying the information (instance id & zone) of the web server from which CloudFront retrieved the content.
+- If a cache is missed, CloudFront will request from its configured origin which defines the location of the definitive, original version of the content that will be delivered through the CloudFront distribution. Usually this is the ALB DNS which fronts the EC2 content servers.
+---
+
+## Module #13 - Backup & Recovery ##
+All about Disaster Planning, AWS Backup, Recovery Strategies.
+
+### Disaster Planning ###
+- **Note**: Fault tolerance is often confused with high availability, but fault tolerance refers to the built-in redundancy of an application's components to prevent service interruption. However, it is at a higher cost.
+- AWS maintains a strict Region isolation policy so that any large-scale event in one Region will not impact any other Region.
+- Recovery Point Objective(RPO) is the acceptable amount of data loss measured in time. For example, if a disaster occurs at 1:00 p.m. (13:00) and the RPO is 12 hours, the system should recover all data that was in the system before 1:00 a.m. (01:00) that day. Data loss will, at most, span 12 hours—between 1:00 p.m. and 1:00 a.m.
+- Calculate RPO from backup frequency or interval; e.g. if you backup data every hour, your RPO is up to 1 hour.
+- Recovery Time Objective (RTO) is the time it takes after a disruption to restore a business process to its service level, as defined by the operational level agreement (OLA). For example, if a disaster occurs at 1:00 p.m. (13:00) and the RTO is 1 hour, the DR process should restore the business process to the acceptable service level by 2:00 p.m. (14:00).
+- Calculate RTO by how much time you need to restore services from backup / other means of services.
+- When building your backup strategy, make a plan to duplicate your storage using a solution that meets your recovery needs:
+-- `s3` - use cross-region replication.  
+-- `s3 glacier` - stores in regional vaults; updated daily by AWS.  
+-- `ebs` - point-in-time volume snapshots, then copy snapshots across regions and accounts.  
+-- `snow family` - data transfer.  
+-- `datasync` - sync to EFS.  
+- For compute DR, AWS strongly recommends that you configure and identify your own AMIs so that they can launch as part of your recovery procedure. Your AMIs should be preconfigured with your operating system of choice, plus the appropriate pieces of the application stack.
+- Network failover: leverage highly available Route 53 and ELB to detect failures and route across AZs and VPCs in failover mode.
+- For `Amazon RDS`, achieve HA using:  
+-- Create a Multi-AZ DB instance deployment, which creates a primary instance and a standby instance to provide failover support. However, the standby instance does not serve traffic.  
+-- Create a Multi-AZ DB cluster deployment, which creates two standby instances that can also serve read traffic.  
+-- Use a snapshot to create a Read Replica in a different Region. This replica can be promoted to primary in the event of disaster; promoting a Read Replica requires a reboot and has a higher RTO than failing over to a standby instance. 
+-- Save a manual database (DB) snapshot or a DB cluster snapshot in a separate Region.  
+-- Share a manual snapshot with up to 20 other AWS accounts.  
+- Leverage `CloudFormation` stacks to restore and stand up your environment in the event of disaster.
+- 
+
+### AWS Backup ###
+- `AWS Backup` is a fully managed backup service that helps you centralize and automate the backup of data across AWS services.
+- Can back up databases such as DynamoDB tables, Amazon DocumentDB and Amazon Neptune graph databases, and Amazon RDS databases, including Amazon Aurora  database clusters.
+- Can also back up Amazon EFS, Amazon S3, AWS Storage Gateway volumes, and all versions of Amazon FSx, including FSx for Lustre and FSx for Windows File Server.
+- AWS Backup works with other AWS services to monitor its workloads, such as Amazon CloudWatch, Amazon EventBridge, AWS CloudTrail, and Amazon Simple Notification Service (Amazon SNS).
+
+### Recovery Strategies ###
+- Backup & restore: Use `s3` as your data backup location and restore it yourself, also using AMI for EC2 recreation and CloudFormation for networking redeployment.Longest RTO.
+- Pilot light: replicate compute resources to another environnent but shutdown. Use DB (async) replication to backup data to another DB instance. Very much like hot primary - cold DR.
+- Warm standby: similar to pilot light but compute resources are lower capacity. Leverage scaling group to scale up when site acts primary during failover. Like converting non-prod to a prod type of failover.
+- Multi-site active/active: Hot primary and secondary DC. Always on compute and db. Traffic load balances across both DCs all the time as full site HA. Most expensive but least downtime and RPO-RTO.
