@@ -552,3 +552,5 @@ All about Disaster Planning, AWS Backup, Recovery Strategies.
 - Pilot light: replicate compute resources to another environnent but shutdown. Use DB (async) replication to backup data to another DB instance. Very much like hot primary - cold DR.
 - Warm standby: similar to pilot light but compute resources are lower capacity. Leverage scaling group to scale up when site acts primary during failover. Like converting non-prod to a prod type of failover.
 - Multi-site active/active: Hot primary and secondary DC. Always on compute and db. Traffic load balances across both DCs all the time as full site HA. Most expensive but least downtime and RPO-RTO.
+
+# END OF NOTES #
