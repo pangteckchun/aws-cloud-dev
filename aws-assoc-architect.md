@@ -17,7 +17,7 @@ Lab 2 to 6 are important exercises to pass the capstone project (lab 7)
 - `AWS Well Architected Framework` 6 pillars: Security, Performance efficiency, Cost optimization, Operational excellence, Reliability, Sustainability.
 ---
 
-## `Lab #1 - Using AWS CLI for s3` ##
+#### `Lab #1 - Using AWS CLI for s3` ####
 - Listing all buckets in s3 - `aws s3 ls`
 - Creating a new bucket - `aws s3 mb s3://labclibucket-NUMBER`
 - Copying a local file to s3 - `aws s3 cp /home/ssm-user/HappyFace.jpg s3://labclibucket-NUMBER`
@@ -28,19 +28,42 @@ Lab 2 to 6 are important exercises to pass the capstone project (lab 7)
 **Root** user is for IAM provisioning and emergency cases; do not use for daily interactions.  
 Root is your default HPA account; anything else created in `IAM` are *sub-accounts*.
 
+AWS Organization (1)  
+&emsp;|- OU (1)  
+&emsp; &emsp; |-AWS account (1)                                                                                                                                                                                                                                                                                                                                                                                                 
+&emsp; &emsp; |-AWS account (2)  
+&emsp; &emsp; ...  
+&emsp;|- OU (2)  
+&emsp; ...  
+&emsp;|- OU (N)  
+
 ### IAM ###
-- Always create a separate sub-account / ID for every individual.
+- Always create a separate sub-account / ID for every individual; and this are `IAM user`.
+
 - Access via CLI or SDK always need `access key` and `secret access key` pairs.
-- Use **user groups** to manage pool of users with similar authorization.
-- User **IAM role** for temp permissions (time validity) for individual users, services, federated users.
-- A **user group** cannot assume an **IAM role**.
+
+- Use **IAM Groups** to manage pool of IAM users with similar authorization.
+
+- User **IAM role** for elevated or temp permissions (time validity) for individual users, services, federated users:  
+-- [Elevated use case] :: An app needing accessd to AWS resource (e.g. S3) we will grant it an `IAM role` so that the credentials are not hardcoded and also enforces keys rotation as default compliance.  
+-- [Temp permission use case] :: A user has a default group and policy applied but do not have access to certain AWS resources (e.g. S3) but needing a temp access to the resource. Grant a `IAM role` with some custom policy and assign the user to this `IAM role` for the time period. The user's default IAM group policy will not take effect and will only follow the IAM role policy enforcement.
+
+- Hence an **IAM group** cannot assume an **IAM role**.
+
 - `IAM policies` are Json documents with **version**, **effect**, **action** (Allow or Deny only), **resource** accessible, **conditions** the policy will apply.
+
 - Effect - Allow or Deny only. Deny takes precedence over Allow.
+
 - `IAM policies` can be identity-based or resource-based: different Json formats. Both **identity-based** and **resource-based** IAM policies will be evaluated at the same to reconcile access conflicts.  
 -- Resource-based policy will always have "principal" as an attribute. `IAM Permission Boundaries`: sets the range or limits of permissions we can assign out in our policies. This sets the filter or boundaries for max permission. It does not *grant* permission; use `IAM policies` to do the granting.
+
 - AWS organisations: for grouping accounts into OUs. Takes advantage of consolidated billing - which facilitates group discounts. Apply `service control policies` (SCPs) to set boundaries of permission for each account. `SCPs` are like IAM permission boundaries but at the org level!
-- `SCPs` allow only what is at the intersection of IAM permissions and SCPs; like permission boundaries, `SCPs` do not grant permissions; they act as a filter.
-- IAM layered defense: `SCP` <--> `IAM Permission Boundaries` <--> `IAM Policies`. Evaluation policy details: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.htm
+
+- `SCPs` allow only what is at the intersection of IAM permissions boundaries and SCPs; like permission boundaries, `SCPs` do not grant permissions; they act as a filter.
+
+- IAM layered defense: `SCP` <--> `IAM Permission Boundaries` <--> `IAM Policies`.
+
+- Evaluation policy details: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.htm
 ---
 
 ## Module #3 - Networking 1 ##
@@ -59,7 +82,7 @@ All about IP addressing, VPCs, network security.
 ### VPC - Subnets ###
 - A subnet resides within one AZ.
 - All subnets created are private by default.
--  A public subnet must have an internet gateway and route to the gateway. You create and attach the internet gateway and route tables to make a subnet public in AWS.
+-  A public subnet must have an internet gateway and route table to the gateway; i.e. you create and attach the internet gateway and route tables to make a subnet public in AWS.
 -  If your subnet is associated with a route table that has a route to an internet gateway, it’s known as a public subnet.
 - A subnet does not allow outbound traffic by default. Your VPC uses route tables to determine where to route traffic. To allow your VPC to route internet traffic, you create an outbound route in your route table with an internet gateway as a target, or destination.
 - A public subnet holds resources that work with inbound and outbound traffic; needs: route table, internet gateway, elastic IP addresses.
@@ -74,7 +97,7 @@ All about IP addressing, VPCs, network security.
 -You are limited to five Elastic IP addresses per VPC.
 - NAT gateway needs to be deployed in the public subnet.
 - Use NAT gateway to allow private subnet to have outbound traffic to the internet; maps private IP to public IP.
-- You use NAT for IP address conservation and also for hiding source IP from private instances from internet services going through NAT --> Internet Gateway --> internet destination.
+- You use NAT for IP address conservation and also for hiding source IP of  private instances from internet services going through NAT --> Internet Gateway --> internet destination.
 - For HA config, deploy VPC across AZs and configure identical subnets across the AZs, with a single Internet Gateway for inbound and outbound traffic management | NAT --> Internet Gateway for private outbound to internet destination | Internet Gateway --> Elastic LB for public inbound to private instances for load distribution.
 
 ### Elastic Network Interface ###
@@ -114,7 +137,7 @@ All about EC2, instance storage, pricing, Lambda.
 - Lambda: runs up to 15mins only | supports up to only 10GB of memory. 
 - Very useful for IT automation.
 
-## `Lab #2 - VPCs, subnets, EC2s` ##
+#### `Lab #2 - VPCs, subnets, EC2s` ####
 - One VPC in a single region in one single AZ - 2 subnets [public and private] in the VPC.
 - Public subnet - attach Internet Gateway and route table (making it publicly available) | Internet Gateway allowing internet traffic as default setting | attach NAT gateway, connect NAT Gateway to Internet Gateway in route table.
 - Private subnet - attach route table, connect to NAT gateway in route table.
@@ -239,7 +262,7 @@ Server, Amazon Redshift, Aurora, MariaDB, and MySQL.
 - Use `AWS Schema Conversion Tool` (`AWS SCT`) to convert schema between heterogeneous DBs migration; The conversion includes views, stored procedures, and functions; it converts legacy Oracle and SQL Server functions to their equivalent AWS service, thus modernizing the applications at the same time of database migration.
 - AWS SCT can also help migrate data from various data warehouses to Amazon Redshift by using built-in data migration agents.
 
-## `Lab #3 - ALB & Aurora DB` ##
+#### `Lab #3 - ALB & Aurora DB` ####
 - ALB in public subnet --> target group (with rule) --> EC2s @ 2 AZs --> DB-security-group --> Aurora DB instance
 - Access custom web app (on EC2s) using ALB public DNS name, put in DB credentials via settings and you can interact with the DB via the custom web app page.
 ---
@@ -288,7 +311,7 @@ Alarm states include "OK", "ALARM", "INSUFFICIENT_DATA".
 - Specify min and max resources in the auto scaling group.
 - Specify scaling based on: health status, cloudwatch alarms, schedules (date/time), manually (you specify capacity on your scaling group yourself).
 
-## `Lab 4 - Auto-scaling groups` ##
+#### `Lab 4 - Auto-scaling groups` ####
 - [Security] Http (80) --> **ALB** --> secGrp-ALB -- allowed by --> secGrp-EC2s inbound --> **EC2s** --> secGrp-EC2s outbound --> secGrp-DB inbound --> **DB**.
 - [Flow] **ALB** target-grp --> attach ALB to scaling-grp of EC2s by selecting the ALB's target-grp:  
 -- target-grp specifies the EC2 instances as targets;  
@@ -453,7 +476,7 @@ monitoring, and API version management.
 -- Standard workflow type for long-running, durable, and auditable workflows.  
 -- Express workflow type for high-volume, event-processing workloads such as IoT data ingestion, streaming data processing and transformation, and mobile application backends.  
 
-## `Lab #5 - Serverless Build` ##
+#### `Lab #5 - Serverless Build` ####
 - `s3` --create events notification to SNS in S3--> `sns` (configure access policy to allow `s3` to trigger).
 - `sns` configure subscriptions to separate `sqs` queues.
 - `lambda` add trigger to each `sqs` queue and configure code that will run for each lambda trigger. One lambda config to each sqs queue.
@@ -508,7 +531,7 @@ All about Route 53, CloudFront, DDoS Protection, AWS Outposts.
 - Outposts support multiple subnets.
 - Each Outpost can support multiple VPCs that can have one or more Outpost subnets.
 
-## `Lab #6 - CloudFront CDN Distribution` ##
+#### `Lab #6 - CloudFront CDN Distribution` ####
 - `CloudFront` --> [OAC config] --> `s3`
 - Access `CloudFront` via its distributed domain name (from General config tab) in a browser and a simple web page is loaded displaying the information (instance id & zone) of the web server from which CloudFront retrieved the content.
 - If a cache is missed, CloudFront will request from its configured origin which defines the location of the definitive, original version of the content that will be delivered through the CloudFront distribution. Usually this is the ALB DNS which fronts the EC2 content servers.
